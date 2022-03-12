@@ -124,9 +124,9 @@ public class Robot extends TimedRobot {
   public void drive_tank() {
     double in_sp = 0.5;
     motor_drive_fl.set(ControlMode.PercentOutput, -in_sp * ctl_xbox.getRawAxis(1));
-    motor_drive_fr.set(ControlMode.PercentOutput, in_sp * ctl_xbox.getRawAxis(3));
+    motor_drive_fr.set(ControlMode.PercentOutput, in_sp * -ctl_xbox.getRawAxis(3));
     motor_drive_bl.set(ControlMode.PercentOutput, -in_sp * ctl_xbox.getRawAxis(1));
-    motor_drive_br.set(ControlMode.PercentOutput, in_sp * ctl_xbox.getRawAxis(3));
+    motor_drive_br.set(ControlMode.PercentOutput, in_sp * -ctl_xbox.getRawAxis(3));
   }
 
   public void drive_mecanum() {
@@ -137,9 +137,16 @@ public class Robot extends TimedRobot {
 
     motor_drive_bl.set(ControlMode.PercentOutput, in_sp * ((in_y - in_x) + in_rot));
     motor_drive_fl.set(ControlMode.PercentOutput, in_sp * ((in_y + in_x) + in_rot));
-    motor_drive_br.set(ControlMode.PercentOutput, in_sp * (-(in_y + in_x) + in_rot));
-    motor_drive_fr.set(ControlMode.PercentOutput, in_sp * (-(in_y - in_x) + in_rot));
+    motor_drive_br.set(ControlMode.PercentOutput, in_sp * -(-(in_y + in_x) + in_rot));
+    motor_drive_fr.set(ControlMode.PercentOutput, in_sp * -(-(in_y - in_x) + in_rot));
   }
+
+  @Override
+  public void teleopInit() {
+    auto_timer.stop();
+  }
+
+  // **Shooting, cargo, and right-side drive motors wired backwards**
 
   @Override
   public void teleopPeriodic() {
@@ -179,8 +186,8 @@ public class Robot extends TimedRobot {
         piston_2_active = !piston_2_active;
       }
 
-      motor_climb_1.set(ControlMode.PercentOutput, ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
-      motor_climb_2.set(ControlMode.PercentOutput, ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
+      motor_climb_1.set(ControlMode.PercentOutput, -ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
+      motor_climb_2.set(ControlMode.PercentOutput, -ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
     }
 
     if (piston_1_active) {
@@ -204,6 +211,8 @@ public class Robot extends TimedRobot {
       motor_cargo.set(ControlMode.PercentOutput, -1);
     } else if (ctl_xbox.getRawButton(CTL_XBOX_BUTTON_RB)) {
       motor_cargo.set(ControlMode.PercentOutput, 1);
+    } else if (ctl_xbox.getRawButton(CTL_XBOX_BUTTON_RB)) {
+      motor_cargo.set(ControlMode.PercentOutput, -1);
     } else {
       motor_cargo.set(ControlMode.PercentOutput, 0);
     }
@@ -215,17 +224,22 @@ public class Robot extends TimedRobot {
       // float speed = (float) (aim_angle - pot_shoot_aim_deg) / 90;
 
       // if (aim_angle - pot_shoot_aim_deg >= 5) {
-      //   motor_turret_aim_1.set(ControlMode.PercentOutput, speed);
-      //   motor_turret_aim_2.set(ControlMode.PercentOutput, speed);
+      // motor_turret_aim_1.set(ControlMode.PercentOutput, speed);
+      // motor_turret_aim_2.set(ControlMode.PercentOutput, speed);
       // } else {
-      //   if (aim_angle - pot_shoot_aim_deg <= -5) {
-      //     motor_turret_aim_1.set(ControlMode.PercentOutput, -speed);
-      //     motor_turret_aim_2.set(ControlMode.PercentOutput, -speed);
-      //   } else {
-      //     motor_turret_aim_1.set(ControlMode.PercentOutput, 0);
-      //     motor_turret_aim_2.set(ControlMode.PercentOutput, 0);
-      //   }
+      // if (aim_angle - pot_shoot_aim_deg <= -5) {
+      // motor_turret_aim_1.set(ControlMode.PercentOutput, -speed);
+      // motor_turret_aim_2.set(ControlMode.PercentOutput, -speed);
+      // } else {
+      // motor_turret_aim_1.set(ControlMode.PercentOutput, 0);
+      // motor_turret_aim_2.set(ControlMode.PercentOutput, 0);
       // }
+      // }
+
+      motor_turret_aim_1.set(ControlMode.PercentOutput, -ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
+      motor_turret_aim_2.set(ControlMode.PercentOutput, -ctl_stick.getRawAxis(CTL_STICK_AXIS_Y));
+
+      // ^ new aim code
 
       if (hub_limit_left.get() && ctl_stick.getRawAxis(CTL_STICK_AXIS_X) < 0) {
         motor_turret_rotate.set(ControlMode.PercentOutput, 0);
@@ -246,8 +260,8 @@ public class Robot extends TimedRobot {
       mode_ball_shoot = 0;
     }
 
-    motor_turret_shoot_1.set(ControlMode.PercentOutput, mode_ball_shoot);
-    motor_turret_shoot_2.set(ControlMode.PercentOutput, mode_ball_shoot);
+    motor_turret_shoot_1.set(ControlMode.PercentOutput, -mode_ball_shoot);
+    motor_turret_shoot_2.set(ControlMode.PercentOutput, -mode_ball_shoot);
 
     // SmartDashboard.putNumber("sensor_color_r", sensor_color_r);
     // SmartDashboard.putNumber("sensor_color_g", sensor_color_g);
@@ -264,6 +278,26 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
+    if (auto_timer.get() < 2) {
+      motor_turret_shoot_1.set(ControlMode.PercentOutput, -1);
+      motor_turret_shoot_2.set(ControlMode.PercentOutput, -1);
+    } else if (auto_timer.get() < 3) {
+      motor_cargo.set(ControlMode.PercentOutput, -1);
+    } else if (auto_timer.get() < 5) {
+      motor_drive_bl.set(ControlMode.PercentOutput, -1);
+      motor_drive_fl.set(ControlMode.PercentOutput, -1);
+      motor_drive_fr.set(ControlMode.PercentOutput, 1);
+      motor_drive_br.set(ControlMode.PercentOutput, 1);
+    } else {
+      motor_turret_shoot_1.set(ControlMode.PercentOutput, 0);
+      motor_turret_shoot_2.set(ControlMode.PercentOutput, 0);
+      motor_cargo.set(ControlMode.PercentOutput, 0);
+      motor_drive_bl.set(ControlMode.PercentOutput, 0);
+      motor_drive_fl.set(ControlMode.PercentOutput, 0);
+      motor_drive_fr.set(ControlMode.PercentOutput, 0);
+      motor_drive_br.set(ControlMode.PercentOutput, 0);
+    }
+
     if (auto_timer.get() < 1.5) {
       motor_drive_fl.set(ControlMode.PercentOutput, -1);
       motor_drive_fr.set(ControlMode.PercentOutput, -1);
@@ -288,6 +322,7 @@ public class Robot extends TimedRobot {
     }
 
     if (ctl_stick.getRawButton(CTL_STICK_BUTTON_9)) {
+      // right side drive backwards
       motor_drive_fr.set(ControlMode.PercentOutput, -1);
       motor_drive_br.set(ControlMode.PercentOutput, -1);
     } else {
@@ -318,12 +353,14 @@ public class Robot extends TimedRobot {
     }
 
     if (ctl_stick.getRawButton(CTL_STICK_BUTTON_7)) {
+      // cargo motor backwards
       motor_cargo.set(ControlMode.PercentOutput, -1);
     } else {
       motor_cargo.set(ControlMode.PercentOutput, 0);
     }
 
     if (ctl_stick.getRawButton(CTL_STICK_BUTTON_10)) {
+      // shooting motors backwards
       motor_turret_shoot_1.set(ControlMode.PercentOutput, -1);
     } else {
       motor_turret_shoot_1.set(ControlMode.PercentOutput, 0);
