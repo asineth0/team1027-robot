@@ -1,0 +1,11 @@
+import edu.wpi.first.wpilibj.AnalogInput;
+
+AnalogInput ultrasonic_sensor;
+
+ultrasonic_sensor = new AnalogInput(0);
+double ultrasonic_scale = 5/RobotController.getVoltage5V();
+
+SmartDashboard.putNumber("ultrasonic range (in)", ultrasonic_sensor.getValue() * ultrasonic_scale * 0.0492);
+SmartDashboard.putNumber("ultrasonic range (cm)", ultrasonic_sensor.getValue() * ultrasonic_scale * 0.125);
+
+// https://www.maxbotix.com/firstrobotics
