@@ -1,7 +1,6 @@
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonFX;
+import com.ctre.phoenixpro.hardware.TalonFX;
 
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -25,11 +24,12 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
+    //joystick-motor
     ctlXbox = new Joystick(0);
-    motorDriveBL = new TalonFX(2);
-    motorDriveBR = new TalonFX(3);
     motorDriveFL = new TalonFX(0);
+    motorDriveBL = new TalonFX(2);
     motorDriveFR = new TalonFX(1);
+    motorDriveBR = new TalonFX(3);
   }
 
   @Override
@@ -54,14 +54,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    double ly = -ctlXbox.getRawAxis(CTL_XBOX_AXIS_LY);
-    double ry = -ctlXbox.getRawAxis(CTL_XBOX_AXIS_RY);
-
-    // tank drive
-    motorDriveBL.set(ControlMode.PercentOutput, ly);
-    motorDriveFL.set(ControlMode.PercentOutput, ly);
-    motorDriveBR.set(ControlMode.PercentOutput, ry);
-    motorDriveFR.set(ControlMode.PercentOutput, ry);
+    // get ctrl from xbox
+    double LY = ctlXbox.getRawAxis(CTL_XBOX_AXIS_LY) * -1;
+    double RY = ctlXbox.getRawAxis(CTL_XBOX_AXIS_RY) * -1;
+    motorDriveFL.set(LY);
+    motorDriveBL.set(LY);
+    motorDriveFR.set(RY);
+    motorDriveBR.set(RY);
   }
 
   @Override
