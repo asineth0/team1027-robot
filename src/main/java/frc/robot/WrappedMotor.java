@@ -53,4 +53,8 @@ public class WrappedMotor {
         if (type == WrappedMotorType.VictorSP)
             motorVictorSP.set(this.speedCalc);
     }
+
+    public double get() {
+        return this.speedCalc;
+    }
 }

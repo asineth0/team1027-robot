@@ -103,7 +103,7 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     double speed = Math.min((xikaraY / 10) * 0.15, 0.15);
-    
+
     if (Math.abs(xikaraZ) <= 1) {
       speed = 0;
     }
@@ -155,6 +155,15 @@ public class Robot extends TimedRobot {
     motorDriveFR.set((-lx + ly - rx) * scale);
     motorDriveBL.set((-lx + ly + rx) * scale);
     motorDriveBR.set((lx + ly - rx) * scale);
+
+    Util.log(String.format("teleop: fl=%f fr=%f bl=%f br=%f -> xx=%f xy=%f xz=%f",
+        motorDriveFL.get(),
+        motorDriveFR.get(),
+        motorDriveBL.get(),
+        motorDriveBR.get(),
+        xikaraX,
+        xikaraY,
+        xikaraZ));
   }
 
   @Override
