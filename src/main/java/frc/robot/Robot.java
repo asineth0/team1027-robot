@@ -1,5 +1,9 @@
 package frc.robot;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.Socket;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
 
@@ -17,7 +21,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends TimedRobot {
   private static final int CTL_XBOX_AXIS_LX = 0;
-  private static final int CTL_XBOX_AXIS_LY = 1; 
+  private static final int CTL_XBOX_AXIS_LY = 1;
   private static final int CTL_XBOX_AXIS_RX = 4;
   private static final int CTL_XBOX_AXIS_RY = 5;
   private static final int CTL_XBOX_AXIS_RT = 3;
@@ -31,6 +35,9 @@ public class Robot extends TimedRobot {
   private SlewRateLimiter limitFilterRX;
   private SlewRateLimiter limitFilterLY;
   private SlewRateLimiter limitFilterRY;
+  private float xikaraX = 0;
+  private float xikaraY = 0;
+  private float xikaraZ = 0;
 
   @Override
   public void robotInit() {
@@ -44,6 +51,33 @@ public class Robot extends TimedRobot {
     limitFilterLY = new SlewRateLimiter(0.8);
     limitFilterRX = new SlewRateLimiter(0.8);
     limitFilterRY = new SlewRateLimiter(0.8);
+
+    new Thread(() -> {
+      for (;;) {
+        try (Socket xikaraSock = new Socket("10.10.27.100", 3100)) {
+          Util.log("xikara OK v2");
+          BufferedReader xikaraReader = new BufferedReader(new InputStreamReader(xikaraSock.getInputStream()));
+
+          for (;;) {
+            String line = xikaraReader.readLine();
+            xikaraX = Float.parseFloat(line.split(" ")[0]);
+            xikaraY = Float.parseFloat(line.split(" ")[1]);
+            xikaraZ = Float.parseFloat(line.split(" ")[2]);
+            SmartDashboard.putNumber(("xikara_x"), xikaraX);
+            SmartDashboard.putNumber(("xikara_y"), xikaraY);
+            SmartDashboard.putNumber(("xikara_z"), xikaraZ);
+          }
+
+        } catch (Exception e) {
+          Util.log("xikara disconnected - retrying in 1s");
+          try {
+            Thread.sleep(1000);
+          } catch (Exception e2) {
+            //
+          }
+        }
+      }
+    }).start(); // xikara XC thread
   }
 
   @Override
@@ -58,7 +92,17 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
+    double speed = (xikaraZ / (10 / 360)) * 0.15;
+    Util.log(String.format("xikara_z=%f speed=%f", xikaraZ, speed));
+    
+    if (Math.abs(xikaraZ) <= 0.1) {
+      speed = 0;
+    }
 
+    motorDriveFL.set(speed);
+    motorDriveFR.set(speed);
+    motorDriveBL.set(speed);
+    motorDriveBR.set(speed);
   }
 
   @Override
@@ -98,14 +142,10 @@ public class Robot extends TimedRobot {
     // motorDriveBR.set(ry);
 
     // mecanum drive:
-    double flSpeed = (lx + ly + rx) * scale;
-    double frSpeed = (-lx + ly - rx) * scale;
-    double blSpeed = (-lx + ly + rx) * scale;
-    double brSpeed = (lx + ly - rx) * scale;
-    motorDriveFL.set(flSpeed);
-    motorDriveBL.set(blSpeed);
-    motorDriveFR.set(frSpeed);
-    motorDriveBR.set(brSpeed);
+    motorDriveFL.set((lx + ly + rx) * scale);
+    motorDriveFR.set((-lx + ly - rx) * scale);
+    motorDriveBL.set((-lx + ly + rx) * scale);
+    motorDriveBR.set((lx + ly - rx) * scale);
   }
 
   @Override

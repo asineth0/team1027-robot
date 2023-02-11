@@ -16,6 +16,8 @@ enum WrappedMotorType {
 
 public class WrappedMotor {
     private WrappedMotorType type;
+    private double speed;
+    private double speedCalc;
     private double factor;
     private TalonFX motorTalonFX;
     private TalonSRX motorTalonSRX;
@@ -24,42 +26,31 @@ public class WrappedMotor {
 
     public WrappedMotor(int id, WrappedMotorType type, double factor) {
         this.type = type;
+        this.speed = 0;
+        this.speedCalc = 0;
         this.factor = factor;
 
-        if (type == WrappedMotorType.TalonFX) {
+        if (type == WrappedMotorType.TalonFX) 
             motorTalonFX = new TalonFX(id);
-        }
-
-        if (type == WrappedMotorType.TalonSRX) {
+        if (type == WrappedMotorType.TalonSRX) 
             motorTalonSRX = new TalonSRX(id);
-        }
-
-        if (type == WrappedMotorType.VictorSPX) {
+        if (type == WrappedMotorType.VictorSPX) 
             motorVictorSPX = new VictorSPX(id);
-        }
-
-        if (type == WrappedMotorType.VictorSP) {
+        if (type == WrappedMotorType.VictorSP) 
             motorVictorSP = new VictorSP(id);
-        }
     }
 
     public void set(double speed) {
-        speed *= factor;
+        this.speed = speed;
+        this.speedCalc = speed * factor;
 
-        if (type == WrappedMotorType.TalonFX) {
-            motorTalonFX.set(ControlMode.PercentOutput, speed);
-        }
-
-        if (type == WrappedMotorType.TalonSRX) {
-            motorTalonSRX.set(ControlMode.PercentOutput, speed);
-        }
-
-        if (type == WrappedMotorType.VictorSPX) {
-            motorVictorSPX.set(ControlMode.PercentOutput, speed);
-        }
-
-        if (type == WrappedMotorType.VictorSP) {
-            motorVictorSP.set(speed);
-        }
+        if (type == WrappedMotorType.TalonFX)
+            motorTalonFX.set(ControlMode.PercentOutput, this.speedCalc);
+        if (type == WrappedMotorType.TalonSRX)
+            motorTalonSRX.set(ControlMode.PercentOutput, this.speedCalc);
+        if (type == WrappedMotorType.VictorSPX)
+            motorVictorSPX.set(ControlMode.PercentOutput, this.speedCalc);
+        if (type == WrappedMotorType.VictorSP)
+            motorVictorSP.set(this.speedCalc);
     }
 }
