@@ -1,0 +1,11 @@
+[Unit]
+Description=Xikara
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/asineth/xikara/start.sh
+ExecStop=/home/asineth/xikara/stop.sh
+
+[Install]
+WantedBy=multi-user.target

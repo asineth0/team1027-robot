@@ -69,8 +69,16 @@ func main() {
 		}
 	}()
 
-	exec.Command("adb", "shell", "am force-stop com.android.chrome").Run()
-	exec.Command("adb", "shell", "am start -a android.intent.action.VIEW -d http://localhost:3000").Run()
+	for {
+		shell := exec.Command("adb", "shell")
+		shellIn, _ := shell.StdinPipe()
+		shell.Start()
+		shellIn.Write([]byte("input keyevent 224\n"))
+		shellIn.Write([]byte("input keyevent 82\n"))
+		shellIn.Write([]byte("am force-stop com.android.chrome\n"))
+		shellIn.Write([]byte("am start -a android.intent.action.VIEW -d http://localhost:3000\n"))
+		shell.Wait()
+	}
 
 	select {}
 }
