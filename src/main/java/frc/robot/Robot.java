@@ -54,18 +54,28 @@ public class Robot extends TimedRobot {
 
     new Thread(() -> {
       for (;;) {
-        try (Socket xikaraSock = new Socket("10.10.27.100", 3100)) {
+        try (Socket xikaraSock = new Socket("10.10.27.100", 8081)) {
           Util.log("xikara OK v2");
           BufferedReader xikaraReader = new BufferedReader(new InputStreamReader(xikaraSock.getInputStream()));
 
           for (;;) {
             String line = xikaraReader.readLine();
-            xikaraX = Float.parseFloat(line.split(" ")[0]);
-            xikaraY = Float.parseFloat(line.split(" ")[1]);
-            xikaraZ = Float.parseFloat(line.split(" ")[2]);
+            xikaraX = Float.parseFloat(line.split("\"x\":")[1].split(",")[0]);
+            xikaraY = Float.parseFloat(line.split("\"y\":")[1].split(",")[0]);
+            xikaraZ = Float.parseFloat(line.split("\"z\":")[1].split("}")[0]);
+            xikaraX = Math.round(xikaraX * 1000) / 1000;
+            xikaraY = Math.round(xikaraY * 1000) / 1000;
+            xikaraZ = Math.round(xikaraZ * 1000) / 1000;
+            if (xikaraY > 0) {
+              xikaraY = 90 - xikaraY;
+            }
+            if (xikaraY < 0) {
+              xikaraY = -90 - xikaraY;
+            }
             SmartDashboard.putNumber(("xikara_x"), xikaraX);
             SmartDashboard.putNumber(("xikara_y"), xikaraY);
             SmartDashboard.putNumber(("xikara_z"), xikaraZ);
+            Util.log(String.format("xikara msg: x=%f y=%f z=%f", xikaraX, xikaraY, xikaraZ));
           }
 
         } catch (Exception e) {
@@ -92,10 +102,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-    double speed = (xikaraZ / (10 / 360)) * 0.15;
-    Util.log(String.format("xikara_z=%f speed=%f", xikaraZ, speed));
+    double speed = Math.min((xikaraY / 10) * 0.15, 0.15);
     
-    if (Math.abs(xikaraZ) <= 0.1) {
+    if (Math.abs(xikaraZ) <= 1) {
       speed = 0;
     }
 

@@ -4,28 +4,31 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
 	"os/exec"
+	"time"
 
 	"golang.org/x/net/websocket"
 )
 
 //go:embed public
-var public embed.FS
+var publicFS embed.FS
 
 var msgChan = make(chan string)
+var msgLatest = ""
 
 func handleWS(ws *websocket.Conn) {
-	log.Printf("[xs] WS connect\n")
+	log.Println("[xs] WS connected")
 
 	var msg string
 	for {
 		err := websocket.Message.Receive(ws, &msg)
 
 		if err == io.EOF {
-			log.Printf("[xs] WS gone\n")
+			log.Println("[xs] WS closed")
 			return
 		}
 
@@ -33,6 +36,7 @@ func handleWS(ws *websocket.Conn) {
 			panic(err)
 		}
 
+		msgLatest = msg
 		msgChan <- msg
 	}
 }
@@ -42,13 +46,22 @@ func main() {
 	log.Println("[xs] preparing to take over the world")
 
 	go func() {
-		http.Handle("/", http.FileServer(http.Dir("public")))
+		publicFSSub, _ := fs.Sub(publicFS, "public")
+		httpFSHandler := http.FileServer(http.FS(publicFSSub))
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("cache-control", "public, max-age=0")
+			httpFSHandler.ServeHTTP(w, r)
+		})
 		http.Handle("/ws", websocket.Handler(handleWS))
-		http.ListenAndServe(":3000", nil)
+		http.ListenAndServe(":8080", nil)
 	}()
 
 	go func() {
-		server, _ := net.Listen("tcp", ":3100")
+		server, err := net.Listen("tcp", ":8081")
+		if err != nil {
+			panic(err)
+		}
+
 		for {
 			conn, err := server.Accept()
 			if err != nil {
@@ -56,6 +69,10 @@ func main() {
 			}
 
 			go func() {
+				if len(msgLatest) > 0 {
+					conn.Write([]byte(fmt.Sprintf("%s\n", msgLatest)))
+				}
+
 				for {
 					msg := <-msgChan
 					_, err := conn.Write([]byte(fmt.Sprintf("%s\n", msg)))
@@ -70,15 +87,18 @@ func main() {
 	}()
 
 	for {
+		exec.Command("adb", "start-server").Run()
+		exec.Command("adb", "reverse", "tcp:8080", "tcp:8080").Run()
+		exec.Command("adb", "shell", "input keyevent 224").Run()
+		exec.Command("adb", "shell", "input keyevent 82").Run()
+		exec.Command("adb", "shell", "am force-stop com.android.chrome").Run()
+		exec.Command("adb", "shell", "am start -a android.intent.action.VIEW -d http://localhost:8080").Run()
 		shell := exec.Command("adb", "shell")
-		shellIn, _ := shell.StdinPipe()
+		shell.StdinPipe()
+		shell.StdoutPipe()
 		shell.Start()
-		shellIn.Write([]byte("input keyevent 224\n"))
-		shellIn.Write([]byte("input keyevent 82\n"))
-		shellIn.Write([]byte("am force-stop com.android.chrome\n"))
-		shellIn.Write([]byte("am start -a android.intent.action.VIEW -d http://localhost:3000\n"))
 		shell.Wait()
+		log.Println("[xs] ADB closed - retrying in 1s")
+		time.Sleep(1 * time.Second)
 	}
-
-	select {}
 }

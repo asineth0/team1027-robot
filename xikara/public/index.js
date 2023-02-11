@@ -1,6 +1,6 @@
 const init = () => {
   let s = 0;
-  const ws = new WebSocket("ws://localhost:3000/ws");
+  const ws = new WebSocket("ws://localhost:8080/ws");
   const wsSend = ws.send.bind(ws);
   ws.send = (val) => wsSend(JSON.stringify(val));
   ws.binaryType = "arraybuffer";

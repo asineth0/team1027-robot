@@ -160,3 +160,10 @@ bin/
 
 # Simulation GUI and other tools window save file
 *-window.json
+
+# xikara
+xikara-gyrotest/node_modules
+xikara-gyrotest/dist
+xikara/xikara
+xikara/latest.log
+

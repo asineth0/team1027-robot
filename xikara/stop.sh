@@ -1,3 +1,4 @@
 #!/bin/bash
-pkill -9 adb
+cd /home/asineth/xikara
 pkill -9 xikara
+pkill -9 adb
