@@ -4,20 +4,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.Socket;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonFX;
-
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-// this is a comment
-
-/*
- * this is a multiline ocmmnet
- */
 
 public class Robot extends TimedRobot {
   private static final int CTL_XBOX_AXIS_LX = 0;
@@ -41,7 +31,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-    // joystick-motor
     ctlXbox = new Joystick(0);
     motorDriveFL = new WrappedMotor(0, WrappedMotorType.TalonFX, 1);
     motorDriveBL = new WrappedMotor(2, WrappedMotorType.TalonFX, 1);
@@ -62,16 +51,7 @@ public class Robot extends TimedRobot {
             String line = xikaraReader.readLine();
             xikaraX = Float.parseFloat(line.split("\"x\":")[1].split(",")[0]);
             xikaraY = Float.parseFloat(line.split("\"y\":")[1].split(",")[0]);
-            xikaraZ = Float.parseFloat(line.split("\"z\":")[1].split("}")[0]);
-            xikaraX = Math.round(xikaraX * 1000) / 1000;
-            xikaraY = Math.round(xikaraY * 1000) / 1000;
-            xikaraZ = Math.round(xikaraZ * 1000) / 1000;
-            if (xikaraY > 0) {
-              xikaraY = 90 - xikaraY;
-            }
-            if (xikaraY < 0) {
-              xikaraY = -90 - xikaraY;
-            }
+            xikaraZ = Float.parseFloat(line.split("\"z\":")[1].split(",")[0]);
             SmartDashboard.putNumber(("xikara_x"), xikaraX);
             SmartDashboard.putNumber(("xikara_y"), xikaraY);
             SmartDashboard.putNumber(("xikara_z"), xikaraZ);
