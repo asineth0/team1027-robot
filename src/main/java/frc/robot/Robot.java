@@ -1,73 +1,59 @@
 package frc.robot;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.Socket;
-
-import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
+import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.drive.MecanumDrive;
 
 public class Robot extends TimedRobot {
-  private static final int CTL_XBOX_AXIS_LX = 0;
-  private static final int CTL_XBOX_AXIS_LY = 1;
-  private static final int CTL_XBOX_AXIS_RX = 4;
-  private static final int CTL_XBOX_AXIS_RY = 5;
-  private static final int CTL_XBOX_AXIS_RT = 3;
-  private static final int CTL_XBOX_AXIS_LT = 2;
-  private Joystick ctlXbox;
-  private WrappedMotor motorDriveBL;
-  private WrappedMotor motorDriveBR;
-  private WrappedMotor motorDriveFL;
-  private WrappedMotor motorDriveFR;
-  private SlewRateLimiter limitFilterLX;
-  private SlewRateLimiter limitFilterRX;
-  private SlewRateLimiter limitFilterLY;
-  private SlewRateLimiter limitFilterRY;
-  private float xikaraX = 0;
-  private float xikaraY = 0;
-  private float xikaraZ = 0;
+  private static final int XBOX_AXIS_LX = 0;
+  private static final int XBOX_AXIS_LY = 1;
+  private static final int XBOX_AXIS_LT = 2;
+  private static final int XBOX_AXIS_RT = 3;
+  private static final int XBOX_AXIS_RX = 4;
+  private static final int XBOX_AXIS_RY = 5;
+  private static final int XBOX_BUTTON_A = 1;
+  private static final int XBOX_BUTTON_B = 2;
+  private static final int XBOX_BUTTON_X = 3;
+  private static final int XBOX_BUTTON_Y = 4;
+  private static final int XBOX_BUTTON_LB = 5;
+  private static final int XBOX_BUTTON_RB = 6;
+  private static final int XBOX_BUTTON_DUP = 6;
+  private static final int XBOX_BUTTON_DDOWN = 6;
+  private static final int XBOX_BUTTON_DLEFT = 6;
+  private static final int XBOX_BUTTON_DRIGHT = 6;
+  private Joystick xbox1;
+  private Joystick xbox2;
+  private WrappedMotor mDriveBL;
+  private WrappedMotor mDriveBR;
+  private WrappedMotor mDriveFL;
+  private WrappedMotor mDriveFR;
+  private WrappedMotor mArm;
+  private WrappedMotor mIntake;
+  private DoubleSolenoid pIntakeRachet;
+  private DoubleSolenoid pIntake;
+  private DoubleSolenoid pGrip;
+  private Solenoid pIntakePin;
+  private Timer autoTimer;
 
   @Override
   public void robotInit() {
-    ctlXbox = new Joystick(0);
-    motorDriveFL = new WrappedMotor(0, WrappedMotorType.TalonFX, 1);
-    motorDriveBL = new WrappedMotor(2, WrappedMotorType.TalonFX, 1);
-    motorDriveFR = new WrappedMotor(1, WrappedMotorType.TalonFX, -1);
-    motorDriveBR = new WrappedMotor(3, WrappedMotorType.TalonFX, -1);
-    limitFilterLX = new SlewRateLimiter(0.8);
-    limitFilterLY = new SlewRateLimiter(0.8);
-    limitFilterRX = new SlewRateLimiter(0.8);
-    limitFilterRY = new SlewRateLimiter(0.8);
-
-    new Thread(() -> {
-      for (;;) {
-        try (Socket xikaraSock = new Socket("10.10.27.100", 8081)) {
-          Util.log("xikara OK v2");
-          BufferedReader xikaraReader = new BufferedReader(new InputStreamReader(xikaraSock.getInputStream()));
-
-          for (;;) {
-            String line = xikaraReader.readLine();
-            xikaraX = Float.parseFloat(line.split("\"x\":")[1].split(",")[0]);
-            xikaraY = Float.parseFloat(line.split("\"y\":")[1].split(",")[0]);
-            xikaraZ = Float.parseFloat(line.split("\"z\":")[1].split(",")[0]);
-            SmartDashboard.putNumber(("xikara_x"), xikaraX);
-            SmartDashboard.putNumber(("xikara_y"), xikaraY);
-            SmartDashboard.putNumber(("xikara_z"), xikaraZ);
-            Util.log(String.format("xikara msg: x=%f y=%f z=%f", xikaraX, xikaraY, xikaraZ));
-          }
-
-        } catch (Exception e) {
-          Util.log("xikara disconnected - retrying in 1s");
-          try {
-            Thread.sleep(1000);
-          } catch (Exception e2) {
-            //
-          }
-        }
-      }
-    }).start(); // xikara XC thread
+    xbox1 = new Joystick(0);
+    xbox2 = new Joystick(1);
+    mDriveFL = new WrappedMotor(0, WrappedMotorType.TalonFX, 1);
+    mDriveBL = new WrappedMotor(2, WrappedMotorType.TalonFX, 1);
+    mDriveFR = new WrappedMotor(1, WrappedMotorType.TalonFX, -1);
+    mDriveBR = new WrappedMotor(3, WrappedMotorType.TalonFX, -1);
+    mArm = new WrappedMotor(10, WrappedMotorType.TalonSRX, -1); // +extends
+    mIntake = new WrappedMotor(20, WrappedMotorType.TalonSRX, 1);
+    pIntakeRachet = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 3, 4);
+    pIntake = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
+    pGrip = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 5, 6);
+    pIntakePin = new Solenoid(PneumaticsModuleType.CTREPCM, 2);
+    autoTimer = new Timer();
   }
 
   @Override
@@ -77,21 +63,25 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
-    //
+    autoTimer.reset();
+    autoTimer.start();
   }
 
   @Override
   public void autonomousPeriodic() {
-    double speed = Math.min((xikaraY / 10) * 0.15, 0.15);
-
-    if (Math.abs(xikaraZ) <= 1) {
-      speed = 0;
+    if (autoTimer.get() < 1) {
+      mDriveFL.set(0.2);
+      mDriveFR.set(0.2);
+      mDriveBL.set(0.2);
+      mDriveBR.set(0.2);
     }
 
-    motorDriveFL.set(speed);
-    motorDriveFR.set(speed);
-    motorDriveBL.set(speed);
-    motorDriveBR.set(speed);
+    if (autoTimer.get() > 1) {
+      mDriveFL.set(0);
+      mDriveFR.set(0);
+      mDriveBL.set(0);
+      mDriveBR.set(0);
+    }
   }
 
   @Override
@@ -101,49 +91,79 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    // get controller inputs
-    double lx = ctlXbox.getRawAxis(CTL_XBOX_AXIS_LX);
-    double ly = ctlXbox.getRawAxis(CTL_XBOX_AXIS_LY) * -1;
-    double rx = ctlXbox.getRawAxis(CTL_XBOX_AXIS_RX);
-    double ry = ctlXbox.getRawAxis(CTL_XBOX_AXIS_RY) * -1;
-    double scale = 1;
+    // drive inputs 
+    double driveLX = xbox1.getRawAxis(XBOX_AXIS_LX);
+    double driveLY = xbox1.getRawAxis(XBOX_AXIS_LY) * -1;
+    double driveRX = xbox1.getRawAxis(XBOX_AXIS_RX);
+    driveLX = Math.abs(driveLX) > 0.1 ? driveLX : 0;
+    driveLY = Math.abs(driveLY) > 0.1 ? driveLY : 0;
+    driveRX = Math.abs(driveRX) > 0.1 ? driveRX : 0;
 
-    if (ctlXbox.getRawAxis(CTL_XBOX_AXIS_RT) > 0.2) {
-      scale *= 0.5;
+    // drive DPI
+    double driveScale = 1;
+    if (xbox1.getRawAxis(XBOX_AXIS_RT) > 0.25)
+      driveScale *= 0.5;
+    double mDriveFLVal = driveLX + driveLY + driveRX;
+    double mDriveFRVal = -driveLX + driveLY - driveRX;
+    double mDriveBLVal = -driveLX + driveLY + driveRX;
+    double mDriveBRVal = driveLX + driveLY - driveRX;
+
+    // drive boost
+    double mDriveMaxVal = 0;
+    mDriveMaxVal = Math.max(mDriveMaxVal, mDriveFLVal);
+    mDriveMaxVal = Math.max(mDriveMaxVal, mDriveFRVal);
+    mDriveMaxVal = Math.max(mDriveMaxVal, mDriveBLVal);
+    mDriveMaxVal = Math.max(mDriveMaxVal, mDriveBRVal);
+    if (xbox1.getRawButton(XBOX_BUTTON_RB) && mDriveMaxVal < 1) {
+      driveScale = 1.0d / mDriveMaxVal;
     }
 
-    // add 5% deadzone
-    lx = Math.abs(lx) > 0.1 ? lx : 0;
-    ly = Math.abs(ly) > 0.1 ? ly : 0;
-    rx = Math.abs(rx) > 0.1 ? rx : 0;
-    ry = Math.abs(ry) > 0.1 ? ry : 0;
+    // drive
+    mDriveFL.set(mDriveFLVal * driveScale);
+    mDriveFR.set(mDriveFRVal * driveScale);
+    mDriveBL.set(mDriveBLVal * driveScale);
+    mDriveBR.set(mDriveBRVal * driveScale);
 
-    // slew rate limiter
-    // lx = limitFilterLX.calculate(lx);
-    // ly = limitFilterLY.calculate(ly);
-    // rx = limitFilterRX.calculate(rx);
-    // ry = limitFilterRY.calculate(ry);
+    // intake wheels
+    double intakeSpeed = 0;
+    if (xbox2.getRawButton(XBOX_BUTTON_A))
+      intakeSpeed = 1;
+    if (xbox2.getRawButton(XBOX_BUTTON_B))
+      intakeSpeed = -1;
+    mIntake.set(intakeSpeed);
 
-    // tank drive:
-    // motorDriveFL.set(ly);
-    // motorDriveBL.set(ly);
-    // motorDriveFR.set(ry);
-    // motorDriveBR.set(ry);
+    // intake piston
+    DoubleSolenoid.Value pIntakeVal = DoubleSolenoid.Value.kOff;
+    if (-xbox2.getRawAxis(XBOX_AXIS_RY) > 0.25)
+      pIntakeVal = DoubleSolenoid.Value.kForward;
+    if (-xbox2.getRawAxis(XBOX_AXIS_RY) < -0.25)
+      pIntakeVal = DoubleSolenoid.Value.kReverse;
+    pIntake.set(pIntakeVal);
+    if (pIntake.get() != pIntakeVal) {
+      pIntake.set(pIntakeVal);
+    }
 
-    // mecanum drive:
-    motorDriveFL.set((lx + ly + rx) * scale);
-    motorDriveFR.set((-lx + ly - rx) * scale);
-    motorDriveBL.set((-lx + ly + rx) * scale);
-    motorDriveBR.set((lx + ly - rx) * scale);
+    // intake pin
+    if (xbox2.getRawButtonPressed(XBOX_BUTTON_Y)) {
+      pIntakePin.set(!pIntakePin.get());
+    }
 
-    Util.log(String.format("teleop: fl=%f fr=%f bl=%f br=%f -> xx=%f xy=%f xz=%f",
-        motorDriveFL.get(),
-        motorDriveFR.get(),
-        motorDriveBL.get(),
-        motorDriveBR.get(),
-        xikaraX,
-        xikaraY,
-        xikaraZ));
+    // arm
+    double armLY = xbox2.getRawAxis(XBOX_AXIS_LY) * -1;
+    armLY = Math.abs(armLY) > 0.1 ? armLY : 0;
+    mArm.set(armLY);
+
+    // grip
+    DoubleSolenoid.Value pGripVal = DoubleSolenoid.Value.kOff;
+    if (xbox2.getRawButton(XBOX_BUTTON_LB)) {
+      pGripVal = DoubleSolenoid.Value.kReverse;
+    }
+    if (xbox2.getRawButton(XBOX_BUTTON_RB)) {
+      pGripVal = DoubleSolenoid.Value.kForward;
+    }
+    if (pGrip.get() != pGripVal) {
+      pGrip.set(pGripVal);
+    }
   }
 
   @Override
@@ -163,6 +183,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    //
+    mArm.set(xbox1.getRawAxis(XBOX_AXIS_RY));
   }
 }
